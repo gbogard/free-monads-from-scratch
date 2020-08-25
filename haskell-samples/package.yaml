@@ -1,0 +1,34 @@
+name:                haskell-samples
+version:             0.1.0.0
+github:              "gbogard/free-monads-from-scratch"
+license:             MIT
+author:              "Guillaume Bogard"
+maintainer:          "hey@guillaumebogard.dev"
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+
+executables:
+  haskell-samples-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - haskell-samples
+
+tests:
+  haskell-samples-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - haskell-samples
