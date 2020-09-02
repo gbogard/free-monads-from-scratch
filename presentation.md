@@ -17,18 +17,12 @@ You can follow me on Twitter @bogardguillaume and on guillaumebogard.dev
 
 ---
 
-## What this talk is
+## Agenda
 
-- An introduction to *effects* and their relation to the substitution model of evaluation
-- A primer on *Free monads* as a way of modeling effectful programs
-- A demonstration of a straightforward Free monad implementation in *Haskell* and *Scala*
-
----
-
-## What is isn't
-
-- A category theory class (some definitions will be less than rigorous, sorry)
-- A performance-focused talk (the most naive implementation of a Free monad is also very inefficient)
+1. Effects and the substitution model of evaluation
+2. Free monads, interpreters, and their benefits
+3. Implementing Free monads in Scala and Haskell
+4. Free monads *in the real world*
 
 ---
 
@@ -42,7 +36,7 @@ But why do pure functions matter ? What is it that makes the functional programm
 
 ---
 
-### What is the *core benefit* of functional programming?
+## What is the *root benefit* of functional programming?
 
 ^ I'm interested in answering this question because it will motivate the use of free monads later on.
 For the purpose of this talk I am going to assert that all the benefits of functional programming – the productivity increase, the enhanced stability of programs, and their comparatively
@@ -63,24 +57,118 @@ This dramatically reduces the cognitive load required to write and understand pr
 
 ---
 
-## The benefits of functional programming take root in *the substitution model of evaluation*.
+### Functional programming is expression-oriented
+## Evaluating a program is just evaluating expressions recursively until there are no more sub-expressions
 
 ---
 
-TODO: 3 benefits to referential transparency: - reduced cognitive load, programs are inspectable and testable, and programs can
-be refactored with confidence
+## Expressions are equivalent if they have the same normal form\*
+
+#### But there's a catch, more on that in a minute
+
+---
+
+## How substitution works
+
+---
+
+## Why substitution matters
+
+---
+
+### But, remember, there's a catch
+
+---
+
+## Expressions are equivalent if they have the same normal form\*
+### \*Assuming the program is *referentially transparent*
+
+---
+
+## When substitution breaks
+
+
+---
+
+## Common practices that break substitution
+
+---
+
+## How do build *anything* useful without breaking substitution ?
+
+---
+
+## Turning *actions* into *effects*
+
+Turning imperative side-effects into mere *descriptions*, and deferring their execution until the *end of the world*, allows us to freely substitute these descriptions.
+
+We use pure data structures to describe the intended behavior, without running any externally visible effect until we have to.
+
+ 
+The type system will help track the nature of the effects, in addition to the type of values our programs produce.
+
+---
+
+# *It's just data!*™
+### – every Clojure developer ever
+
+---
+
+## Example: replacing Exceptions with Either
+
+---
+
+## Are effects and monads the same thing?
+
+---
+
+## Turning arbitrary instructions into effects
+
+---
+
+## Why IO isn't always ideal
+
+---
+
+## Can we do better ?
+
+---
+
+# II
+# Free monads and their interpreters
+
+---
+
+## What is a Free monad?
+
+---
+
+## A Free monad for accounts management
+
+---
+
+## Benefits of free monads
+
+---
+
+# III
+# Implementing Free monads
+
+---
+
+# IV
+# Free monads in the real world
+
+---
+
+
+TODO: 3 benefits to referential transparency: - reduced cognitive load, programs are inspectable and testable, and programs can be refactored with confidence
 
 IO only reduces the cognitive load and increases the ability to refactor, but does not allow for program inspection without evaluating side effects, hence
 the need for reification.
 
-TODO later: free monads allow programs to be optmized before execution, for example, dat afetching programs could be optimized ahead of time to avoid N+1 queries
+TODO later: free monads allow programs to be optimized before execution, for example, dat afetching programs could be optimized ahead of time to avoid N+1 queries
 
 
-## When substitution breaks
 
----
-
-## Why are effects most often modeled as monads
-
----
 
