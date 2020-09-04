@@ -70,9 +70,102 @@ This dramatically reduces the cognitive load required to write and understand pr
 
 ## How substitution works
 
+Large expressions are computed by evaluating every sub-expression
+
+[.code-highlight: 1-3]
+[.code-highlight: 1, 4]
+[.code-highlight: 1, 5]
+[.code-highlight: 1, 6]
+[.code-highlight: 1, 7]
+[.code-highlight: 1, 8]
+[.code-highlight: 1, 9]
+
+```haskell
+plusOne a = a + 1
+
+x = plusOne $ plusOne $ plusOne 16
+x = plusOne $ plusOne 16 + 1 
+x = plusOne $ plusOne 17
+x = plusOne 17 + 1
+x = plusOne 18
+x = 18 + 1
+x = 19
+```
+
+---
+
+## How substitution works
+
+At any point, I can substitute an expression with its normal form without changing the program.
+
+```haskell
+x = plusOne $ plusOne $ plusOne 16
+```
+
+is equivalent to
+
+```haskell
+x = plusOne $ 18
+```
+
+---
+
+## How substitution works
+
+Expressions can be moved around freely without changing the program. In other words, the order of evaluation is irrelevant.
+
+```haskell
+a = Musician "John"
+b = Musician "Paul"
+c = Musician "Ringo"
+d = Musician "George"
+
+song = play [a, b, c, d]
+```
+
+---
+
+## How substitution works
+
+Expressions can be moved around freely without changing the program. In other words, the order of evaluation is irrelevant.
+
+```haskell
+b = Musician "Paul"
+a = Musician "John"
+d = Musician "George"
+c = Musician "Ringo"
+
+song = play [a, b, c, d]
+```
+
+---
+
+## How substitution works
+
+Expressions can be moved around freely without changing the program. In other words, the order of evaluation is irrelevant.
+
+```haskell
+c = Musician "Ringo"
+b = Musician "Paul"
+d = Musician "George"
+a = Musician "John"
+
+song = play [a, b, c, d]
+```
+
 ---
 
 ## Why substitution matters
+
+### The ability to build programs out of freely-manipulable expressions is at the :heart: of what makes FP so appealing
+
+---
+
+- **Dramatically reduced cognitive load**
+  Order of execution is irrelevant. Expressions can be reasoned about in complete isolation
+- **Easy unit tests**
+  *I give you this, you should give me that*
+- **Unmatched flexibility**
 
 ---
 
