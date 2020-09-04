@@ -1,0 +1,31 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: f66293e88581cba7049c3108dc707e56432e6f18d932764d813fe0026f80b406
+
+name:           data-types-a-la-carte
+version:        0.1.0.0
+homepage:       https://github.com/gbogard/free-monads-from-scratch#readme
+bug-reports:    https://github.com/gbogard/free-monads-from-scratch/issues
+author:         Guillaume Bogard
+maintainer:     hey@guillaumebogard.dev
+license:        MIT
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/gbogard/free-monads-from-scratch
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_data_types_a_la_carte
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+  default-language: Haskell2010
