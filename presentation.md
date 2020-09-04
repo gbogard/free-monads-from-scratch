@@ -118,6 +118,10 @@ The type system will help track the nature of the effects, in addition to the ty
 
 ---
 
+## Why effects matter
+
+---
+
 ## Are effects and monads the same thing?
 
 ---
