@@ -6,6 +6,7 @@ val globalSettings = List(
     List(
       "org.typelevel" %% "cats-core" % "2.2.0-RC4",
       "org.typelevel" %% "cats-free" % "2.2.0-RC4",
+      "org.typelevel" %% "cats-effect" % "2.1.4"
     )
 )
 
