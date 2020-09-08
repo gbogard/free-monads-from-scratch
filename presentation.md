@@ -11,9 +11,9 @@ slidenumbers: true
 
 Bonjour ! 👋
 
-My name is Guillaume Bogard. I'm a Scala Developer @Linkvalue.
+My name is Guillaume Bogard. I'm a functional programmer, working mostly in Scala.
 
-I love functional programming, roller-coasters, and Age of Empires.
+I love roller-coasters, and Age of Empires.
 
 You can follow me on Twitter @bogardguillaume and on guillaumebogard.dev
 
@@ -575,12 +575,27 @@ We've built a PL inside our PL!
 externally-visible effect. Following the tenet of *don't test the framework*, we test only the program itself, and trust the interpreter
 to do its job properly. Of course, the interpreter can, and probably must, also be tested seperately
 
-// TOOD code samples
+[.column]
+
+```scala
+val program: IO[Unit] =
+  updateSubscription(UserId("123"))
+    .foldMap(userStoreCompiler)
+```
+
+[.column]
+
+```haskell
+-- todo: put example
+```
+
 
 ---
 
 # III
-# Implementing Free monads
+# Implementing<br/>Free monads
+
+### Based on Wouter Swierstra's paper<br/>*Data Types à la carte*
 
 ---
 
@@ -591,15 +606,21 @@ to do its job properly. Of course, the interpreter can, and probably must, also 
 
 ### *Real-world practice* #1: mocking
 
-[.column]
 
 Free monads allow mocking parts of our program selectively. Mocking is as easy as writing an interpreter.
 
-[.column]
 
 ```scala
-// Todo: write the example
+val userStoreCompiler
+  : UserStoreDsl ~> IO = ???
 
+val mockCompiler
+  : UserStoreDsl ~> IO = {
+  case GetUser("123") => mockUser.pure[IO]
+  case other          => userStoreCompiler(other)
+}
+
+getUser(UserId("123")).foldMap(mockCompiler).unsafeRunSync() shouldBe mockUser
 ```
 
 ---
@@ -607,40 +628,50 @@ Free monads allow mocking parts of our program selectively. Mocking is as easy a
 
 ### *Real-world practice* #2: swapping interpreters
 
-
-[.column]
-
 The same program can be interpreted using different interpreters, e.g. to provide various storage backends for a data-access layer.
 
-[.column]
-
 ```scala
-// Todo: write the example
+sealed trait KeyValueStoreDsl[A]
+case class Put(key: String, value: String) extends KeyValueStore[Unit]
+case class Get(key: String) extends KeyValueStore[Option[String]]
 
+val inMemoryCompiler: KeyValueStoreDsl ~> State[Map[String, String], *] = ???
+val redisCompiler: KeyValueStoreDsl ~> IO = ???
+val irminCompiler: KeyValueStoreDsl ~> IO = ???
 ```
 
 ---
 
-### *Real-world practice* #3: monadic interface for your library
-
-[.column]
+### *Real-world practice* #3: monadic interface for libraries
 
 Monads reduce the needed amount of documentation and give many operations for free.
-
-*Doobie* uses free monads to database transactions on which users can use for-comprehensions, `>>`, `<<`, `as` etc.
-
-[.column]
+*Doobie* uses free monads to model database transactions on which users can use for-comprehensions, `>>`, `<<`, `as` etc.
 
 ```scala
-// Todo: write the example
-
+val transaction: ConnectionIO[Int] = for {
+  nbUsers <- sql"delete * from users".update.run
+  nbMsgs <- sql"delete * from messages".update.run
+} yield nbUsers + nbMsgs
 ```
+
+Multiple databases are supported through *transactors* which are ... Free monad interpreters :)
 
 ---
 
 ### *Real-word practice* #4: combining DSLs
 
-#### Every program can spefically select the operations they need, instead of having access to every possible operation. 
+#### Every program can specifically select the operations they need,<br>instead of having access to every possible operation. 
+
+---
+
+## What I haven't covered: ergonomics
+
+Manually *lifting* functors into coproducts is tedious and implies a lot of boilerplate.
+
+Fortunately, the problem is adressed in Swierstra's paper in the chapter *Automating injections*.
+
+One can define a type class, :≺:, that, given a type and coproduct *knows* how to inject it in the coproduct.
+This type class is implemented in *Cats* under the name `Inject`
 
 ---
 

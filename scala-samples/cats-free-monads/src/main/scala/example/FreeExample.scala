@@ -2,6 +2,7 @@ package example
 
 import cats.free.Free
 import cats.effect.IO
+import cats.data.State
 import cats.implicits._
 import cats.~>
 
@@ -65,4 +66,10 @@ object FreeExample {
     updateSubscription(UserId("123"))
       .foldMap(userStoreCompiler)
 
+  // We can create another interpreter for testing purposes
+  val mockUser = User(UserId("123"))
+  val mockCompiler: UserStoreDsl ~> IO = {
+    case GetUser("123") => mockUser.pure[IO]
+    case other          => userStoreCompiler(other)
+  }
 }
