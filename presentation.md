@@ -529,7 +529,8 @@ val userStoreCompiler
   case GetSubscription(UserId("123")) =>
     Subscription(SubId("1")).some.pure[IO]
 
-  case GetSubscription(_)    => Option.empty.pure[IO]
+  case GetSubscription(_) => 
+    Option.empty.pure[IO]
 
   case DeleteSubscription(_) => IO.unit
 
@@ -567,6 +568,17 @@ userStoreInterpreter (Subscribe _ next) = do
 
 ---
 
+Finally, we can interpret our program *into the IO monad*. 
+We've built a PL inside our PL!
+
+^ Expressing our solutions using the terms of a DSL gives us the ability to test then without executing any
+externally-visible effect. Following the tenet of *don't test the framework*, we test only the program itself, and trust the interpreter
+to do its job properly. Of course, the interpreter can, and probably must, also be tested seperately
+
+// TOOD code samples
+
+---
+
 # III
 # Implementing Free monads
 
@@ -576,4 +588,76 @@ userStoreInterpreter (Subscribe _ next) = do
 # Free monads in the real world
 
 ---
+
+### *Real-world practice* #1: mocking
+
+[.column]
+
+Free monads allow mocking parts of our program selectively. Mocking is as easy as writing an interpreter.
+
+[.column]
+
+```scala
+// Todo: write the example
+
+```
+
+---
+
+
+### *Real-world practice* #2: swapping interpreters
+
+
+[.column]
+
+The same program can be interpreted using different interpreters, e.g. to provide various storage backends for a data-access layer.
+
+[.column]
+
+```scala
+// Todo: write the example
+
+```
+
+---
+
+### *Real-world practice* #3: monadic interface for your library
+
+[.column]
+
+Monads reduce the needed amount of documentation and give many operations for free.
+
+*Doobie* uses free monads to database transactions on which users can use for-comprehensions, `>>`, `<<`, `as` etc.
+
+[.column]
+
+```scala
+// Todo: write the example
+
+```
+
+---
+
+### *Real-word practice* #4: combining DSLs
+
+#### Every program can spefically select the operations they need, instead of having access to every possible operation. 
+
+---
+
+### Acknowledgments
+
+
+This talk wouldn't have been possible without the work of these amazing people:
+
+- [Cats](https://github.com/typelevel/cats) contributors for their work on the `cats-free` module, among everything else.
+- [James Haydon](https://www.linkedin.com/in/james-haydon-b2651066/) with his article [Free monads for cheap interpreters](https://www.tweag.io/blog/2018-02-05-free-monads/)
+- [Edward A. Kmett](http://comonad.com/reader/) and contributors for the [free](https://hackage.haskell.org/package/free) Haskell package
+- [Adam Rosien](https://twitter.com/arosien) with his article, [*What is an effect*](https://www.inner-product.com/posts/what-is-an-effect/) which provides
+an excellent introduction to effects, and a nice motivation for Free monads
+- [Wouter Swierstra](https://twitter.com/wouterswierstra) with his paper, [*Data types à la carte*](http://www.staff.science.uu.nl/~swier004/talks/2018-fp-ams.pdf)
+which provides the reference implementation for Free monads, on which this presentation's code is mostly based.
+
+### Get in touch
+
+E-mail: hey@guillaumebogard.dev - Homepage: guillaumebogard.dev - Twitter: @bogardguillaume
 
