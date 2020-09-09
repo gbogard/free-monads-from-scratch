@@ -1,6 +1,6 @@
 package examples
 
-import examples.ALaCarte.{program, _}
+import examples.ALaCarte._
 
 class Tests extends munit.FunSuite {
 
@@ -44,5 +44,9 @@ class Tests extends munit.FunSuite {
     )
 
     assertEquals(foldExpr(evalValOrAdd)(program), 23)
+  }
+
+  test("this program should evaluate to a user") {
+    assertEquals(runAlgebra(freeProgram).unsafeRunSync(), User(UserId("123")))
   }
 }
