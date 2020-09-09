@@ -356,7 +356,7 @@ Remember why we care about substitution in the first place.
 
 ## What is a Free monad?
 
-A *Free monad* is a structure of type `Free f a` that gives you a monad for any functor `f`.
+A *Free monad* (in computer science, not necessarily in category theory) is a structure of type `Free f a` that gives you a monad for any functor `f`.
 
 In short, it can turn any functor into a monad.
 
@@ -589,6 +589,13 @@ val program: IO[Unit] =
 -- todo: put example
 ```
 
+---
+
+*Now the type of [the program] tells us exactly what kind of effects it uses: a much healthier situation than a single monolithic `IO` monad. For example, our types guarantee that executing a term in the `Term Teletype` monad will not overwrite any files on our hard disk. The types of our terms actually have something to say about their behavior!*
+
+<br />
+
+Wouter Swierstra, *Data Types à la carte*
 
 ---
 
@@ -596,6 +603,70 @@ val program: IO[Unit] =
 # Implementing<br/>Free monads
 
 ### Based on Wouter Swierstra's paper<br/>*Data Types à la carte*
+
+---
+
+![bg left](alacarte.png)
+
+## What is *Data types à la carte*?
+
+The paper describes a technique for extending data types and functions without affecting existing code, solving P. Wadler's *Expression problem*.
+
+It later shows how the same technique can be used to constrain programs into a specific set of effects, rather than the monolithic `IO`.
+
+---
+
+## What is the expression problem?
+
+Let `Expr` be a sum type, describing the expressions of a very simple calculator that can only add integers
+
+[.column]
+
+```haskell
+data Expr = Val Int
+          | Add Expr Expr
+```
+
+[.column]
+
+```scala
+sealed trait Expr
+
+case class Val(value: Int) 
+  extends Expr
+case class Add(a: Expr, b: Expr) 
+  extends Expr
+```
+
+---
+
+## What is the expression problem?
+
+To extend the abilities of the calculator to add multiplication, one could extend `Expr`
+
+
+```haskell
+data Expr = Val Int
+          | Add Expr Expr
+          | Multiply Expr Expr
+```
+:warning: However, this would force us to adjust and recompile any existing code that uses that uses this data type.
+In short, the expression problem is about extending data types and functions in a *backward-compatible* way
+
+---
+
+### Swierstra's solution: a polymorphic `Expr` type.
+
+We could have a polymorphic data type `Expr`, where the type parameter, `f` constraints the type of expressions happening
+in the subtree.
+
+[.column]
+
+```haskell
+data Expr f = In (f (Expr f))
+```
+
+[.column]
 
 ---
 

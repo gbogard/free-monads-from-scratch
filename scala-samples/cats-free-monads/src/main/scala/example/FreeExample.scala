@@ -49,16 +49,18 @@ object FreeExample {
 
   // Then we write an interpreter for our DSL
 
-  val userStoreCompiler: UserStoreDsl ~> IO = {
-    case GetUser(id) =>
-      // Fetch user from database
-      User(id).pure[IO]
-    case GetSubscription(UserId("123")) =>
-      Subscription(SubId("1")).some.pure[IO]
-    case GetSubscription(_)    => Option.empty.pure[IO]
-    case DeleteSubscription(_) => IO.unit
-    case Subscribe(_) =>
-      Subscription(SubId("new-sub")).pure[IO]
+  val userStoreCompiler: UserStoreDsl ~> IO = new (UserStoreDsl ~> IO) {
+    override def apply[A](fa: UserStoreDsl[A]) = fa match {
+      case GetUser(id) =>
+        // Fetch user from database
+        User(id).pure[IO].map(_.asInstanceOf[A])
+      case GetSubscription(UserId("123")) =>
+        Subscription(SubId("1")).some.pure[IO].map(_.asInstanceOf[A])
+      case GetSubscription(_)    => Option.empty.pure[IO].map(_.asInstanceOf[A])
+      case DeleteSubscription(_) => IO.unit.map(_.asInstanceOf[A])
+      case Subscribe(_) =>
+        Subscription(SubId("new-sub")).pure[IO].map(_.asInstanceOf[A])
+    }
   }
 
   // Finally, we use the interpreter to turn the program into an IO
@@ -68,8 +70,10 @@ object FreeExample {
 
   // We can create another interpreter for testing purposes
   val mockUser = User(UserId("123"))
-  val mockCompiler: UserStoreDsl ~> IO = {
-    case GetUser("123") => mockUser.pure[IO]
-    case other          => userStoreCompiler(other)
+  val mockCompiler: UserStoreDsl ~> IO = new (UserStoreDsl ~> IO) {
+    override def apply[A](fa: UserStoreDsl[A]): IO[A] = fa match {
+      case GetUser(UserId("123")) => mockUser.pure[IO].map(_.asInstanceOf[A])
+      case other => userStoreCompiler(other)
+    }
   }
 }
