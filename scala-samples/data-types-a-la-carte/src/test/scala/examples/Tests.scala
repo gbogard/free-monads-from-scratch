@@ -47,6 +47,6 @@ class Tests extends munit.FunSuite {
   }
 
   test("this program should evaluate to a user") {
-    assertEquals(runAlgebra(freeProgram).unsafeRunSync(), User(UserId("123")))
+    assertEquals(execAlgebra(freeProgram).unsafeRunSync(), User(UserId("123")))
   }
 }

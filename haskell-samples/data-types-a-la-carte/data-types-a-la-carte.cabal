@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f66293e88581cba7049c3108dc707e56432e6f18d932764d813fe0026f80b406
+-- hash: 973c41f81dfcff29286eea2b54c46ee61deb7e73700d1d5a68a02f74148172e0
 
 name:           data-types-a-la-carte
 version:        0.1.0.0
@@ -28,4 +28,18 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , hspec
+  default-language: Haskell2010
+
+test-suite a-la-carte-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_data_types_a_la_carte
+  hs-source-dirs:
+      test
+  build-depends:
+      base >=4.7 && <5
+    , data-types-a-la-carte
+    , hspec
   default-language: Haskell2010

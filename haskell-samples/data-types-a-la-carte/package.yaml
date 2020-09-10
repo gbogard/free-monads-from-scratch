@@ -7,9 +7,16 @@ maintainer:          "hey@guillaumebogard.dev"
 
 dependencies:
 - base >= 4.7 && < 5
+- hspec
 
 library:
   source-dirs: src
 
 executables: {}
-tests: {}
+
+tests:
+  a-la-carte-tests:
+    main: Spec.hs
+    source-dirs: test
+    dependencies:
+      - data-types-a-la-carte

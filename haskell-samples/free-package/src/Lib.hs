@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DeriveFunctor, RankNTypes, TypeOperators #-}
 
 module Lib where
 

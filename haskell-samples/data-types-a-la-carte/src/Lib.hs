@@ -1,6 +1,18 @@
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DeriveFunctor, TypeOperators #-}
 
 module Lib where
+
+import Control.Monad (ap)
+
+newtype UserId = UserId String
+  deriving (Eq, Show)
+
+newtype SubId = SubId String
+
+newtype User = User UserId
+  deriving (Eq, Show)
+
+newtype Subscription = Subscription SubId
 
 -- We start by defining a polymorphic Expr type, whose type parameter
 -- corresponds to the type of expressions happening in the subtree
@@ -73,3 +85,69 @@ foldExpr f (In term) = f (fmap (foldExpr f) term)
 
 result :: Int
 result = foldExpr evalValOrAdd program
+
+-- Now that we have shown how functors can be combined using coproducts
+-- we can generalize this approach to free monads
+
+data Free f a
+  = Pure a
+  | Impure (f (Free f a))
+
+-- When f is Functor, Free f is a monad, as illustrated by these instances
+
+instance Functor f => Functor (Free f) where
+  fmap f (Pure x) = Pure (f x)
+  fmap f (Impure x) = Impure (fmap (fmap f) x)
+
+instance Functor f => Applicative (Free f) where
+  pure x = Pure x
+  (<*>) = ap
+
+instance Functor f => Monad (Free f) where
+  (Pure x) >>= f = f x
+  (Impure x) >>= f = Impure (fmap (>>= f) x)
+
+-- Then we can define a simple dsl
+
+data UserStoreDsl next
+  = GetUser UserId (User -> next)
+  | Subscribe User next
+  deriving (Functor)
+
+type UserStore = Free UserStoreDsl
+
+-- Along with smart constructors
+
+getUser :: UserId -> UserStore User
+getUser id = Impure (GetUser id Pure)
+
+subscribe :: User -> UserStore ()
+subscribe user = Impure (Subscribe user (Pure ()))
+
+-- And we use them to build a program
+freeProgram :: UserStore User
+freeProgram = do
+  user <- getUser (UserId "123")
+  subscribe user
+  return user
+
+-- Finally, given a transformation from F to IO,
+-- we define a fold over Free[F, A] that turns it into IO[A]
+
+class Functor f => Exec f where
+  exec :: f a -> IO a
+
+instance Exec UserStoreDsl where
+  exec (GetUser id next) = do
+    let user = User id
+    return (next user)
+  exec (Subscribe user next) = do
+    putStrLn ("User" <> show user <> " has subscribed") >> return next
+
+execAlgebra :: Exec f => Free f a -> IO a
+execAlgebra (Pure x) = return x
+execAlgebra (Impure x) = exec x >>= execAlgebra
+
+-- Finally we run the program
+freeResult :: IO User
+freeResult = execAlgebra freeProgram

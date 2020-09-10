@@ -140,7 +140,7 @@ object ALaCarte {
       override def pure[A](x: A): Free[F, A] = Pure(x)
     }
 
-  // The we can define a simple dsl
+  // Then we can define a simple dsl
   sealed trait UserStoreDsl[Next]
   case class GetUser[Next](id: UserId, next: User => Next)
       extends UserStoreDsl[Next]
@@ -170,24 +170,24 @@ object ALaCarte {
 
   // Finally, we define a fold over Free[F, A] that turns it into IO[A]
   trait Exec[F[_]] {
-    def execAlgebra[A](fa: F[A]): IO[A]
+    def exec[A](fa: F[A]): IO[A]
   }
 
-  def runAlgebra[F[_]: Functor, A](
+  def execAlgebra[F[_]: Functor, A](
       fa: Free[F, A]
   )(implicit exec: Exec[F]): IO[A] = fa match {
     case Pure(x)   => IO.pure(x)
-    case Impure(x) => exec.execAlgebra(x).flatMap(runAlgebra[F, A](_))
+    case Impure(x) => exec.exec(x).flatMap(execAlgebra[F, A](_))
   }
 
   implicit val execUserStore: Exec[UserStoreDsl] = new Exec[UserStoreDsl] {
-    override def execAlgebra[A](fa: UserStoreDsl[A]): IO[A] = fa match {
+    override def exec[A](fa: UserStoreDsl[A]): IO[A] = fa match {
       case GetUser(id, next) => IO(User(id)).map(next)
       case Subscribe(user, next) =>
         IO(println(s"User $user has subscribed!")).as(next)
     }
   }
 
-  runAlgebra(freeProgram).unsafeRunSync()
+  execAlgebra(freeProgram).unsafeRunSync()
 
 }
