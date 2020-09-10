@@ -1,5 +1,6 @@
 autoscale: true
 slidenumbers: true
+theme: Next
 # [fit] Free monads from scratch
 ## [fit] A way to deal with effectful programs
 ## <br />
@@ -519,23 +520,27 @@ We then define an interpreter for our DSL
 [.column]
 
 ```scala
-val userStoreCompiler
-  : UserStoreDsl ~> IO = {
+val userStoreCompiler = new (UserStoreDsl ~> IO) {
+  def apply[A](fa: UserStoreDsl[A]) = fa match {
+    case GetUser(id) =>
+      // Fetch user from database
+      User(id).pure[IO].map(_.asInstanceOf[A])
 
-  case GetUser(id) =>
-    // Fetch user from database
-    User(id).pure[IO]
+    case GetSubscription(UserId("123")) =>
+      Subscription(SubId("1"))
+        .some.pure[IO].map(_.asInstanceOf[A])
 
-  case GetSubscription(UserId("123")) =>
-    Subscription(SubId("1")).some.pure[IO]
+    case GetSubscription(_)    => 
+      Option.empty
+        .pure[IO].map(_.asInstanceOf[A])
 
-  case GetSubscription(_) => 
-    Option.empty.pure[IO]
+    case DeleteSubscription(_) => 
+      IO.unit.map(_.asInstanceOf[A])
 
-  case DeleteSubscription(_) => IO.unit
-
-  case Subscribe(_) =>
-    Subscription(SubId("new-sub")).pure[IO]
+    case Subscribe(_) =>
+      Subscription(SubId("new-sub"))
+        .pure[IO].map(_.asInstanceOf[A])
+  }
 }
 ```
 
@@ -586,7 +591,9 @@ val program: IO[Unit] =
 [.column]
 
 ```haskell
--- todo: put example
+result :: IO ()
+result = foldFree userStoreInterpreter
+  (updateSubscription (UserId "123"))
 ```
 
 ---
@@ -667,6 +674,301 @@ data Expr f = In (f (Expr f))
 ```
 
 [.column]
+
+```scala
+case class Expr[F[_]](in: F[Expr[F]])
+```
+
+---
+
+Then we can define data types for expressions consisting of integers, or additions of sub-expressions.
+`Val` doesn't actually use its type parameter because it accepts no sub-expression.
+
+[.column]
+
+```haskell
+data Val e = Val Int
+type ValExpr = Expr Val
+
+data Add e = Add e e
+type AddExpr = Expr Add
+```
+
+[.column]
+
+```scala
+case class Val[T](value: Int)
+type ValExpr = Expr[Val]
+
+case class Add[T](a: T, b: T)
+type AddExpr = Expr[Add]
+```
+
+---
+ 
+Combining data types if achieved using their coproducts. 
+The coproduct works like `Either` for type constructors.
+
+```haskell
+data (f :+: g) e = Inl (f e) | Inr (g e)
+```
+
+<br/>
+
+The Scala version is quite more verbose:
+
+```scala
+sealed trait Coproduct[F[_], G[_], A]
+
+case class L[A, F[_], G[_]](in: F[A]) extends Coproduct[F, G, A]
+case class R[A, F[_], G[_]](in: G[A]) extends Coproduct[F, G, A]
+```
+
+---
+
+Using the coproduct, we can build programs made both `Val` and `Add` expressions:
+
+[.column]
+
+```haskell
+type ValOrAddExpr = Expr (Val :+: Add)
+
+program :: ValOrAddExpr
+program =
+  In
+    ( Inr
+        ( Add
+            (In (Inl (Val 10)))
+            ( In
+                ( Inr
+                    ( Add
+                        (In (Inl (Val 2)))
+                        (In (Inl (Val 5)))
+                    )
+                )
+            )
+        )
+    
+```
+
+[.column]
+
+```scala
+type ValOrAdd[T] = Coproduct[Val, Add, T]
+type ValOrAddExpr = Expr[ValOrAdd]
+
+val program: ValOrAddExpr = Expr(
+  R(
+    Add(
+      Expr(L(Val(10))),
+      Expr(
+        R(
+          Add(
+            Expr(L(Val(2))),
+            Expr(L(Val(5)))
+          )
+        )
+      )
+    )
+  )
+)
+```
+
+---
+
+Before we can evaluate the program, we must observe that `Val` and `Add` are both functors
+
+[.column]
+
+```haskell
+instance Functor Val where
+  fmap f (Val x) = Val x
+
+instance Functor Add where
+  fmap f (Add a b) = Add (f a) (f b)
+```
+
+[.column]
+
+```scala
+implicit val valFunctor: Functor[Val] = 
+  new Functor[Val] {
+    def map[A, B](fa: Val[A])(f: A => B) = 
+      Val(fa.value)
+  }
+
+implicit val addFunctor: Functor[Add] = 
+  new Functor[Add] {
+    def map[A, B](fa: Add[A])(f: A => B) =
+      Add(f(fa.a), f(fa.b))
+  } 
+```
+
+---
+
+And also that the coproduct of two functors is itself a functor.
+
+```haskell
+instance (Functor f, Functor g) => Functor (f :+: g) where
+  fmap f (Inl term) = Inl (fmap f term)
+  fmap f (Inr term) = Inr (fmap f term)
+```
+
+<br/>
+
+```scala
+implicit def coproductFunctor[F[_], G[_]](
+    implicit functorF: Functor[F],
+    functorG: Functor[G]
+): Functor[Coproduct[F, G, *]] = new Functor[Coproduct[F, G, *]] {
+  def map[A, B](fa: Coproduct[F, G, A])(f: A => B): Coproduct[F, G, B] =
+    fa match {
+      case L(expr) => L[B, F, G](functorF.fmap(expr)(f))
+      case R(expr) => R[B, F, G](functorG.fmap(expr)(f))
+    }
+}
+```
+
+This means that `Val :+: Add` is a functor
+
+---
+
+Our data types being functors is the precondition for evaluation.
+Given `Expr f` and a function `F a -> a`, we can define a fold that will evaluate the expressions recursively until we get `a`.
+
+
+```haskell
+foldExpr :: Functor f => (f a -> a) -> Expr f -> a
+foldExpr f (In term) = f (fmap (foldExpr f) term)
+```
+
+<br />
+
+```scala
+def foldExpr[F[_]: Functor, T](eval: F[T] => T)(expr: Expr[F]): T =
+  eval(expr.in.map(foldExpr(eval)))
+```
+
+^ The `F a -> a` function is called an algebra. It specifies on step of recursion. The `foldAlgebra` functions that applies the operation to an entire expression.
+
+---
+
+All what's left to do now is specify how a single step of recursion should be evaluated:
+
+[.column]
+
+```haskell
+evalVal :: Val t -> Int
+evalVal (Val number) = number
+
+evalAdd :: Add Int -> Int
+evalAdd (Add a b) = a + b
+
+evalValOrAdd :: (Val :+: Add) Int -> Int
+evalValOrAdd (Inl t) = evalVal t
+evalValOrAdd (Inr t) = evalAdd t
+```
+
+[.column]
+
+```scala
+def evalVal[T](term: Val[T]): Int = 
+  term.value
+def evalAdd(term: Add[Int]): Int = 
+  term.a + term.b
+def evalValOrAdd(term: ValOrAdd[Int]) =
+  term match {
+    case L(term) => evalVal(term)
+    case R(term) => evalAdd(term)
+  }
+```
+
+
+[.footer: Note: In his paper, Swierstra defines a type class called called `Eval` to derive instances for coproducts automatically. I have elided it in favor of a more concise example.]
+---
+
+When we put everything together, we can evaluate programs of type `Val :+: Add` integers.
+
+```haskell
+result :: Int
+result = foldExpr evalValOrAdd program
+```
+
+```scala
+val result: Int = foldExpr(evalValOrAdd)(program)
+```
+
+The type of our program tells us exactly what operations are supported.
+
+---
+
+## Generalizing to Free monads
+
+### This way of folding over functors can be generalized to free monads to build more complex programs.
+
+---
+
+Free monads are monds of the form
+
+```haskell
+data Free f a = Pure a
+              | Impure (f (Free f a))
+```
+
+consisting of pure values and impure effects, constructed using a functor `f`. 
+
+The techniques we've shown before can be generalized to Free monads, to build complex programs out of simple data types.
+
+---
+
+When `f` is a functor, `Free f` is a monad, as shown by these instances:
+
+[.column]
+
+```haskell
+instance Functor f => Functor (Free f) where
+  fmap f (Pure x) = Pure (f x)
+  fmap f (Impure x) = Impure (fmap (fmap f) x)
+
+instance Functor f => Applicative (Free f) where
+  pure x = Pure x
+  (<*>) = ap
+
+instance Functor f => Monad (Free f) where
+  (Pure x) >>= f = f x
+  (Impure x) >>= f = Impure (fmap (>>= f) x)
+```
+
+In short, a Free monad gives us a monad out of any functor.
+
+[.column]
+
+```scala
+implicit def freeFunctor[F[_]: Functor] =
+  new Functor[Free[F, *]] {
+    def map[A, B](fa: Free[F, A])(f: A => B) = fa match {
+      case Pure(x)   => Pure(f(x))
+      case Impure(x) => Impure(x.map(_.map(f)))
+    }
+  }
+
+implicit def freeMonad[F[_]: Functor] =
+  new Monad[Free[F, *]] {
+
+    def map[A, B](fa: Free[F, A])(f: A => B) =
+      freeFunctor[F].fmap(fa)(f)
+
+    def flatMap[A, B](fa: Free[F, A])
+      (f: A => Free[F, B]) = fa match {
+        case Pure(x)   => f(x)
+        case Impure(x) => Impure(x.map(_.flatMap(f)))
+    }
+
+    def pure[A](x: A): Free[F, A] = Pure(x)
+  }
+```
+
+[.footer: Note: tailRecM is elided for conciseness]
 
 ---
 

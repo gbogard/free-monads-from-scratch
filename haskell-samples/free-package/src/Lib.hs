@@ -2,7 +2,7 @@
 
 module Lib where
 
-import Control.Monad.Free (Free, liftF)
+import Control.Monad.Free (Free, liftF, foldFree)
 
 newtype UserId = UserId String
 
@@ -73,3 +73,8 @@ userStoreInterpreter (DeleteSubscription _ next) =
 userStoreInterpreter (Subscribe _ next) = do
   let sub = Subscription (SubId "new-sub")
   pure (next sub)
+
+-- Finally, we use the interpreter to run the program into an IO
+result :: IO ()
+result = foldFree userStoreInterpreter
+  (updateSubscription (UserId "123"))
