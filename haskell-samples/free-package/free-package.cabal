@@ -1,0 +1,32 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 240cdb64a0989bc86dfe42e30591f564ab4e8287ed1eb18235d313f579423582
+
+name:           free-package
+version:        0.1.0.0
+homepage:       https://github.com/gbogard/free-monads-from-scratch#readme
+bug-reports:    https://github.com/gbogard/free-monads-from-scratch/issues
+author:         Guillaume Bogard
+maintainer:     hey@guillaumebogard.dev
+license:        MIT
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/gbogard/free-monads-from-scratch
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_free_package
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , free
+  default-language: Haskell2010

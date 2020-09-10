@@ -1,0 +1,6 @@
+target
+.bloop
+.metals
+.idea
+.stack-work/
+*~
