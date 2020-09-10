@@ -141,7 +141,7 @@ instance Exec UserStoreDsl where
   exec (GetUser id next) = do
     let user = User id
     return (next user)
-  exec (Subscribe user next) = do
+  exec (Subscribe user next) =
     putStrLn ("User" <> show user <> " has subscribed") >> return next
 
 execAlgebra :: Exec f => Free f a -> IO a
