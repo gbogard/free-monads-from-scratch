@@ -972,6 +972,163 @@ implicit def freeMonad[F[_]: Functor] =
 
 ---
 
+Just like earlier, we can define a simple DSL, along with some *smart constructors*:
+
+[.column]
+
+```haskell
+data UserStoreDsl next
+  = GetUser UserId (User -> next)
+  | Subscribe User next
+  deriving (Functor)
+
+type UserStore = Free UserStoreDsl
+
+getUser :: UserId -> UserStore User
+getUser id = Impure (GetUser id Pure)
+
+subscribe :: User -> UserStore ()
+subscribe user = 
+  Impure (Subscribe user (Pure ()))
+```
+
+[.column]
+
+```scala
+sealed trait UserStoreDsl[Next]
+case class GetUser[Next](
+  id: UserId, 
+  next: User => Next
+) extends UserStoreDsl[Next]
+
+case class Subscribe[Next](user: User, next: Next) 
+  extends UserStoreDsl[Next]
+
+type UserStore[A] = Free[UserStoreDsl, A]
+
+def getUser(id: UserId): UserStore[User] =
+  Impure(GetUser(id, Pure(_)))
+def subscribe(user: User): UserStore[Unit] = 
+  Impure(Subscribe(user, Pure(())))
+```
+
+[.footer: The Functor instance in Scala is uninteresting and has been elided.]
+
+---
+
+We then use this DSL to build a very simple program.
+
+Because `Free UserStoreDsl` is a monad, we can express dependant computations very easily :raised_hands:
+
+[.column]
+
+```haskell
+freeProgram :: UserStore User
+freeProgram = do
+  user <- getUser (UserId "123")
+  subscribe user
+  return user
+```
+
+[.column]
+
+```scala
+val freeProgram: UserStore[User] = 
+  for {
+    user <- getUser(UserId("123"))
+    _ <- subscribe(user)
+  } yield use
+```
+
+---
+
+Let's evaluate the program! If we had a function `f a -> IO a`, specifying how a single instruction is evaluated, we could use
+it to fold over the entire program.
+We will encapsulate this functions into a type class:
+
+[.column]
+
+```haskell
+class Functor f => Exec f where
+  exec :: f a -> IO a
+```
+
+[.column]
+
+```scala
+trait Exec[F[_]] {
+  def exec[A](fa: F[A]): IO[A]
+}
+```
+
+---
+
+Let's define an `Exec` instance for our DSL:
+
+[.column]
+
+```haskell
+instance Exec UserStoreDsl where
+  exec (GetUser id next) = do
+    let user = User id
+    return (next user)
+  exec (Subscribe user next) = do
+    putStrLn 
+      ("User" <> show user <> " has subscribed")
+    return next
+```
+
+[.column]
+
+```scala
+implicit val execUserStore = new Exec[UserStoreDsl] {
+  def exec[A](fa: UserStoreDsl[A]): IO[A] = fa match {
+
+    case GetUser(id, next) => 
+      IO(User(id)).map(next)
+
+    case Subscribe(user, next) =>
+      IO {
+        println(s"User $user has subscribed!")
+      } as next
+  }
+}
+```
+
+---
+
+We're almost done! Let's define the fold, and use it to evaluate our program! :tada:
+
+[.column]
+
+```haskell
+execAlgebra :: Exec f => Free f a -> IO a
+execAlgebra (Pure x) = return x
+execAlgebra (Impure x) = 
+  exec x >>= execAlgebra
+
+-- Finally we run the program
+freeResult :: IO User
+freeResult = execAlgebra freeProgram
+```
+
+[.column]
+
+```scala
+def execAlgebra[F[_]: Functor, A](
+    fa: Free[F, A]
+)(implicit exec: Exec[F]): IO[A] = fa match {
+  case Pure(x)   => IO.pure(x)
+  case Impure(x) => 
+    exec.exec(x).flatMap(execAlgebra[F, A](_))
+}
+
+val freeResult: IO[User] = 
+  execAlgebra(freeProgram)
+```
+
+---
+
 # IV
 # Free monads in the real world
 
@@ -1033,7 +1190,7 @@ Multiple databases are supported through *transactors* which are ... Free monad 
 
 ### *Real-word practice* #4: combining DSLs
 
-#### Every program can specifically select the operations they need,<br>instead of having access to every possible operation. 
+#### Every program should specifically select the operations it needs,<br>instead of having access to every possible operation. 
 
 ---
 
