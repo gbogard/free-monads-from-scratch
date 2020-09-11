@@ -4,11 +4,21 @@
 "real-world applications", and their implementation. It is mostly based on Wouter Swierstra's paper,
 *Data Types à la carte*.
 
+## Disclaimer
+
+The implementations in this repository are solely meant for educational purposes. They are neither stack-safe nor very performant,
+and shouldn't be used in production. If you want the awesomeness of Free monads for your application, please use one of the widely-available
+implementations.
+
 ## Repository structure
 
 - `presentation.md` is the source for the slideshow, generated using Deckset
-- `scala-samples` is a sbt project with several modules
-- `haskell-samples` is a stack project with several packages
+- `scala-samples` is a sbt project with several modules:
+    - The `data-types-a-la-carte` module contains a Free monad implementation loosely based on *Data types à la carte*
+    - The `cats-free-monads` module contains examples of using `cats-free` to structure programs
+- Similarly, `haskell-samples` is a stack project with several packages
+    - The `data-types-a-la-carte` package contains a Free monad implementation loosely based on *Data types à la carte*
+    - The `free-package` package contains examples of using `free` to structure programs
 
 ### Acknowledgments
 

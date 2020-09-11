@@ -151,3 +151,18 @@ execAlgebra (Impure x) = exec x >>= execAlgebra
 -- Finally we run the program
 freeResult :: IO User
 freeResult = execAlgebra freeProgram
+
+-- Combining DSLs example
+
+data EmailDsl next
+  = SendConfirmationEmail User next
+  deriving (Functor)
+
+type UserStoreOrEmail = Free (UserStoreDsl :+: EmailDsl)
+
+combinedProgram :: UserId -> UserStoreOrEmail ()
+combinedProgram id = do
+  user <- Impure (Inl (GetUser id Pure))
+  Impure (Inl (Subscribe user (Pure ())))
+  Impure (Inr (SendConfirmationEmail user (Pure ())))
+  return ()

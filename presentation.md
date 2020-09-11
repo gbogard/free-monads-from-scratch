@@ -1,6 +1,9 @@
 autoscale: true
 slidenumbers: true
 theme: Next
+
+![bg](./img/bg1.gif)
+
 # [fit] Free monads from scratch
 ## [fit] A way to deal with effectful programs
 ## <br />
@@ -175,7 +178,7 @@ song = play [a, b, c, d]
 
 Sprinkle some performance boosts on of that:
 
-- **Easy concurrency**
+- **Fearless concurrency**
   Remember, Time isn't a thing anymore
   
   
@@ -613,7 +616,7 @@ Wouter Swierstra, *Data Types à la carte*
 
 ---
 
-![bg left](alacarte.png)
+![bg left](./img/alacarte.png)
 
 ## What is *Data types à la carte*?
 
@@ -1194,6 +1197,33 @@ Multiple databases are supported through *transactors* which are ... Free monad 
 
 ---
 
+### Combining DSLs
+
+[.column]
+
+To combine DSLs, we must recall the coproduct of two functors is itself a functor.
+
+We can use `Free` to get a monad instance for the coproduct of two DSLs, and use both DSLs in the same program.
+
+[.column]
+
+```haskell
+data EmailDsl next
+  = SendConfirmationEmail User next
+  deriving (Functor)
+
+type UserStoreOrEmail = 
+  Free (UserStoreDsl :+: EmailDsl)
+
+combinedProgram :: UserId -> UserStoreOrEmail ()
+combinedProgram id = do
+  user <- Impure (Inl (GetUser id Pure))
+  Impure (Inl (Subscribe user (Pure ())))
+  Impure (Inr (SendConfirmationEmail user (Pure ())))
+  return ()
+```
+---
+
 ## What I haven't covered: ergonomics
 
 Manually *lifting* functors into coproducts is tedious and implies a lot of boilerplate.
@@ -1205,8 +1235,7 @@ This type class is implemented in *Cats* under the name `Inject`
 
 ---
 
-### Acknowledgments
-
+### Acknowledgments :pray:
 
 This talk wouldn't have been possible without the work of these amazing people:
 
@@ -1218,7 +1247,7 @@ an excellent introduction to effects, and a nice motivation for Free monads
 - [Wouter Swierstra](https://twitter.com/wouterswierstra) with his paper, [*Data types à la carte*](http://www.staff.science.uu.nl/~swier004/talks/2018-fp-ams.pdf)
 which provides the reference implementation for Free monads, on which this presentation's code is mostly based.
 
-### Get in touch
+### Get in touch :incoming_envelope:
 
 E-mail: hey@guillaumebogard.dev - Homepage: guillaumebogard.dev - Twitter: @bogardguillaume
 
